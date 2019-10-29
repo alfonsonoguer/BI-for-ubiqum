@@ -1,28 +1,24 @@
 #loading the necessary libraries
 
-pacman::p_load(tidyverse,lubridate,gtools,plotly,htmlwidgets,xlsx)
-# undestanding the attributes
-# data2 %>% select(contains("country")) %>% names()
+pacman::p_load(tidyverse,lubridate,gtools,plotly,htmlwidgets)
 
-setwd("C:/Users/Alfonso/Desktop/Ubiqum/Proyecto Final/Ubiqum Analytics/")
-getwd()
 #### open file - it will open the correct file if you name it correclty ####
 # añadir en el script renombrar el archivo correctamente
 
-data_path <- paste(getwd(), "/data/", sep="")
+data_path <- paste(getwd(), "/data", sep="")
 file_name <- as.Date(Sys.time())
 file_name <- gsub("-",  "", file_name)
 file_name <- list.files("data", pattern = paste("*", file_name, ".csv", sep=""))
 # data <- read.csv((paste(data_path,"/", file_name, sep = "")),na.strings = "")
 # data <- read.csv("c:/Users/danie/Desktop/contact.csv", na.strings="")
 # patch for problems with the top function.
-data <- read.csv(file = paste(data_path, file_name, sep = ""),na.strings = "")
+# data <- read.csv(file = "data/contactos_20191009.csv",na.strings = "")
 
 ## preproceso desde el raw
 
 data$Course <- na.replace(as.character(data$Course), "none") %>%  as.factor()
 data$IP.Country <- na.replace(as.character(data$IP.Country), "none") %>%  as.factor()
-# summary(data$Course)
+summary(data$Course)
 
 
 data2 <- data %>% filter(is.na(Became.an.Evangelist.Date))
@@ -39,7 +35,7 @@ cohort_retention <- function(dat,
   start <- "99"
   end <- "99"
   while(!(start %in% names(dat)))
-    { # start
+    { # start 
      # loop while incorrect column
     cat("Enter strarting field \n 1 for Create.Date \n 2 for list of options\n")
     start <- readline(prompt="Input:")
@@ -52,7 +48,7 @@ cohort_retention <- function(dat,
     }
   }
   while(!(end %in% names(dat)))
-  { # start
+  { # start 
     # loop while incorrect column
     cat("Enter ending field\n 1 for Became.a.Customer.Date\n 2 for list of options\n")
     end <- readline(prompt="Input:")
@@ -64,96 +60,8 @@ cohort_retention <- function(dat,
       print("That name was not valid, chose one of the printed above")
     }
   }
-  # filtering by city the logic here is going to be a swich that will return
-  # filtered  lead_to_customer by the category we want.
   
-  select_origin <- "99"
-
-  while(!(select_origin %in% c(1:4)))
-  { # start
-    # loop while incorrect column
-    cat("Select an option \n 1 for no filter \n 2 for Course.City  \n 3 for IP.City \n 4 for IP.Country \n")
-    select_origin <- readline(prompt="Input:")
-  }
-
-  
-  filter_nothing <- function(dataframe){
-    return(dataframe %>% select("Create.Date",
-                                "Became.a.Customer.Date",
-                                "Contact.ID"))
-  }
-
-  # this function loops until you select a valid city, then filters the dataset 
-  # the way we want it
-  filter_Course_City <- function(dataframe, something = "random_anoying noise"){
-    
-    comparison <- data2
-    
-    while(!(something %in% as.vector(comparison$Course.City))){
-      # loop while incorrect column
-      
-      cat("Enter a city")
-      something <- readline(prompt="Input:")
-      
-      if (!(something %in% comparison$Course.City)) {
-        print(unique(comparison$Course.City))
-        print("That country was not valid, chose one of the printed above")
-      }
-    }
-    return(comparison %>% filter(Course.City == something) %>% select("Create.Date",
-                                                                      "Became.a.Customer.Date",
-                                                                      "Contact.ID"))
-  }
-  
-  # this function loops until you select a valid city, then filters the dataset 
-  # the way we want it
-  filter_IP_City <- function(dataframe, something = "random_anoying noise"){
-    while(!(something %in% dataframe$IP.City)){
-      # loop while incorrect column
-      
-      cat("Enter a city")
-      something <- readline(prompt="Input:")
-      
-      if (!(something %in% dataframe$IP.City)) {
-        print(unique(dataframe$IP.City))
-        print("That city was not valid, chose one of the printed above")
-      }
-    }
-    return(dataframe %>%filter(IP.City == something) %>% select("Create.Date",
-                                                                "Became.a.Customer.Date",
-                                                                "Contact.ID"))
-  }
-  
-  # this function loops until you select a valid city, then filters the dataset 
-  # the way we want it
-  filter_IP_Country <- function(dataframe, something = "random_anoying noise"){
-    comparison <- dataframe
-    while(!(something %in% comparison$IP.Country)){
-        # loop while incorrect column
-      
-        cat("Enter a city")
-      something <- readline(prompt="Input:")
-         
-        if (!(something %in% comparison$IP.Country)) {
-          print(unique(comparison$IP.Country))
-          print("That country was not valid, chose one of the printed above")
-        }
-    }
-    return(dataframe %>% filter(IP.Country == something) %>% select("Create.Date",
-                                "Became.a.Customer.Date",
-                                "Contact.ID"))
-  }
-
-  # filter_IP_City(data2) test that it works
-  
-  result <- switch(select_origin,
-                   "1" = filter_nothing(dat),
-                   "2" = filter_Course_City(dat),
-                   "3" = filter_IP_City(dat),
-                   "4" = filter_IP_Country(dat))
-  
-  
-  lead_to_customer <-  result %>% select("Create.Date",
+  lead_to_customer <-  data2 %>% select("Create.Date",
                                        "Became.a.Customer.Date",
                                        "Contact.ID")
   
@@ -234,38 +142,10 @@ cohort_retention <- function(dat,
   
   ##### AÑADIR! #####
   final_table <- final_table %>% mutate(customers = round(size * accumulated/100, digits = 0))
-  final_table <- final_table[,c(1,2,length(final_table),3,4:(length(final_table)-1))]
-  time <- Sys.time()
-  time <- time %>% gsub(pattern = ":",replacement = "-") %>% gsub(pattern = " ",
-                                                                  replacement = "_")
-  mainDir <- getwd()
-  subDir <- "cohort_retention_output"
-  dir.create(file.path(mainDir, subDir), showWarnings = FALSE)
-  setwd(file.path(mainDir, subDir))
-  final_table <- final_table %>% na.replace(replace = "")
-  write.csv(final_table, paste0(time,"_","cohort_retention_csv.csv"), row.names = F)
-  write.xlsx(as.data.frame(final_table),
-             file = paste0(time,"_","cohort_retention_excel.xlsx"),
-             sheetName = "cohort", 
-             col.names = FALSE, row.names = FALSE, append = FALSE)
-  # No se porque no lo define bien
-  setwd(mainDir)
-  print(p)
-  return(final_table)  
-
-  
+  final_table <- final_table[,c(1,2,17,3,4:16)]
+  return(p)
   ##### salvar en distintos directorios #####
-  ##### preparar para excel: puntos por comas, csv con sep ; replace NA por empty
+  ##### preparar para excel: puntos por comas, csv con sep ; replace NA por empty ,,, eliminar la diagonal inferior (entiendo que se eliminará sola)
 }
-tabla <- cohort_retention(dat = data2)
-
-a <- timestamp()
-
-# write.csv(final_table, "matrix.csv", row.names = F)
-# 
-# getwd()
-# 
-# test_df <- data.frame(a = c(1,NA,3,4))
-# 
-# 
-# test_df %>% na.replace(replace = "")
+cohort_retention(dat = data2)
+write.csv(final_table, "matrix.csv", row.names = F)
